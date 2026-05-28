@@ -1,29 +1,42 @@
 import makeWASocket, {
-  useMultiFileAuthState,
-  DisconnectReason
+  useMultiFileAuthState
 } from "@whiskeysockets/baileys"
 
-import Pino from "pino"
+import express from "express"
+
+const app = express()
+
+app.get("/", (req, res) => {
+  res.send("Bot is running")
+})
+
+const PORT = process.env.PORT || 3000
+
+app.listen(PORT, () => {
+  console.log("Web server running on port " + PORT)
+})
 
 async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState("session")
+  const { state, saveCreds } =
+    await useMultiFileAuthState("session")
 
   const sock = makeWASocket({
-    auth: state,
-    logger: Pino({ level: "silent" }),
-    browser: ["Ubuntu", "Chrome", "20.0.04"]
+    auth: state
   })
 
   sock.ev.on("creds.update", saveCreds)
 
-  sock.ev.on("connection.update", ({ connection }) => {
+  sock.ev.on("connection.update", async ({
+    connection,
+    qr
+  }) => {
+
     if (connection === "open") {
       console.log("✅ BOT CONNECTED")
     }
 
     if (connection === "close") {
       console.log("❌ CONNECTION CLOSED")
-      startBot()
     }
   })
 }
