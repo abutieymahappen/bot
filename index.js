@@ -55,18 +55,22 @@ async function startBot() {
 
       if (shouldReconnect) {
         console.log("🔄 RECONNECTING...")
-        const phoneNumber = "27783650928"
+        startBot()
       }
     }
   })
 
   // Pairing code
   if (!sock.authState.creds.registered) {
-    const phoneNumber = "27783650928"
+    const phoneNumber = process.env.PHONE_NUMBER
 
     setTimeout(async () => {
-      const code = await sock.requestPairingCode(phoneNumber)
-      console.log("PAIR CODE:", code)
+      try {
+        const code = await sock.requestPairingCode(phoneNumber)
+        console.log("PAIR CODE:", code)
+      } catch (err) {
+        console.log("PAIR ERROR:", err)
+      }
     }, 3000)
   }
 }
