@@ -1,78 +1,73 @@
 import makeWASocket, {
   useMultiFileAuthState,
-  DisconnectReason,
   fetchLatestBaileysVersion
 } from "@whiskeysockets/baileys"
 
 import Pino from "pino"
-import express from "express"
-
-const app = express()
-
-// Render port
-const PORT = process.env.PORT || 3000
-
-app.get("/", (req, res) => {
-  res.send("WhatsApp Bot Running ✅")
-})
-
-app.listen(PORT, () => {
-  console.log("Web server running on port " + PORT)
-})
 
 async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState("session")
 
-  const { version } = await fetchLatestBaileysVersion()
+  const { state, saveCreds } =
+    await useMultiFileAuthState("./session")
+
+  const { version } =
+    await fetchLatestBaileysVersion()
 
   const sock = makeWASocket({
     version,
-    logger: Pino({ level: "silent" }),
     auth: state,
-    browser: ["Render Bot", "Chrome", "1.0.0"]
+    logger: Pino({ level: "silent" })
   })
 
-  // Save session
   sock.ev.on("creds.update", saveCreds)
 
-  // Connection updates
-  sock.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect, qr } = update
+  if (!state.creds.registered) {
 
-    if (qr) {
-      console.log("QR RECEIVED")
+    const code =
+      await sock.requestPairingCode("27687085163")
+
+    console.log(`
+╔════════════════════╗
+║ AKATSUKII TESTER   ║
+╠════════════════════╣
+║ ${code}
+╚════════════════════╝
+`)
+  }
+
+  sock.ev.on("messages.upsert", async ({ messages }) => {
+
+    const msg = messages[0]
+    if (!msg.message) return
+
+    const from = msg.key.remoteJid
+
+    const text =
+      msg.message.conversation ||
+      msg.message.extendedTextMessage?.text ||
+      ""
+
+    if (text === ".ping") {
+
+      await sock.sendMessage(from, {
+        text: "🏓 PONG!"
+      })
     }
 
-    if (connection === "open") {
-      console.log("✅ BOT CONNECTED SUCCESSFULLY")
-    }
+    if (text === ".menu") {
 
-    if (connection === "close") {
-      const shouldReconnect =
-        lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
-
-      console.log("❌ CONNECTION CLOSED")
-
-      if (shouldReconnect) {
-        console.log("🔄 RECONNECTING...")
-        startBot()
-      }
+      await sock.sendMessage(from, {
+        text: `
+╭─〔 AKATSUKII TESTER 〕
+│
+├ .ping
+├ .menu
+│
+╰────────────⬣
+`
+      })
     }
   })
-
-  // Pairing code
-  if (!sock.authState.creds.registered) {
-    const phoneNumber = process.env.PHONE_NUMBER
-
-    setTimeout(async () => {
-      try {
-        const code = await sock.requestPairingCode(phoneNumber)
-        console.log("PAIR CODE:", code)
-      } catch (err) {
-        console.log("PAIR ERROR:", err)
-      }
-    }, 3000)
-  }
 }
 
 startBot()
