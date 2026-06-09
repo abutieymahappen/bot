@@ -1,13 +1,10 @@
 {
-  "name": "mybot",
+  "name": "akatsukii-tester",
   "version": "1.0.0",
-  "type": "module",
   "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "type": "module",
   "dependencies": {
-    "@whiskeysockets/baileys": "^7.0.0-rc.3",
-    "express": "^4.18.2"
+    "@whiskeysockets/baileys": "latest",
+    "pino": "^9.0.0"
   }
 }
